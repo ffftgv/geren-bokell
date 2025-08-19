@@ -9,18 +9,31 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Clone and Sync Repository
+      - name: Debug Environment
         run: |
-          # 直接克隆公开的 Gitee 仓库（无需任何认证）
+          echo "当前 GitHub 仓库: ${{ github.repository }}"
+          echo "当前仓库所有者: ${{ github.repository_owner }}"
+          echo "当前分支: ${{ github.ref }}"
+          echo "工作目录: $(pwd)"
+
+      - 名字: Clone and Sync Repository
+        run: |
+          # 直接克隆公开的 Gitee 仓库
           git clone https://gitee.com/wzjwwcom/personal-blog.git repo
           
-          # 进入克隆的仓库目录后再配置 Git 信息
+          # 进入克隆的仓库目录
           cd repo
+          
+          # 配置 Git 用户信息
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           
-          # 添加当前 GitHub 仓库作为远程
-          git remote add github "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          # 显式使用正确的 GitHub 仓库 URL 格式
+          GITHUB_REPO_URL="https://x-access-token:${{ github.token }}@github.com/${{ github.repository_owner }}/${{ github.event.repository.name || github.event.repository.slug }}.git"
+          echo "正在推送到: $GITHUB_REPO_URL"
+          
+          # 添加当前 GitHub 仓库作为远程（使用更可靠的变量）
+          git remote add github "$GITHUB_REPO_URL"
           
           # 推送所有分支和标签到 GitHub
           git push -u github --all --force
