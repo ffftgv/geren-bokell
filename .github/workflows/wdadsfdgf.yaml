@@ -1,0 +1,20 @@
+name: Sync Gitee to GitHub
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/20 * * * *'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync Repository
+        run: |
+          git clone https://gitee.com/wzjwwcom/personal-blog.git repo
+          cd repo
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git remote add github "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          git push -u github --all --force
+          git push -u github --tags --force
