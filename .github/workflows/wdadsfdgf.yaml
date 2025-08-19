@@ -11,10 +11,22 @@ jobs:
     steps:
       - name: Sync Repository
         run: |
-          git clone https://gitee.com/wzjwwcom/personal-blog.git repo
+          # 1. 克隆Gitee仓库（使用--depth 1避免深层历史问题）
+          git clone --depth 1 https://gitee.com/wzjwwcom/personal-blog.git repo
+          
+          # 2. 进入仓库目录
           cd repo
+          
+          # 3. 移除可能存在的错误远程（关键修复点）
+          git remote remove origin || true
+          
+          # 4. 配置Git用户信息
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git remote add github "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
-          git push -u github --all --force
-          git push -u github --tags --force
+          
+          # 5. 添加正确的GitHub远程（确保URL格式正确，无多余空格）
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          
+          # 6. 推送所有分支和标签
+          git push -u origin --all --force
+          git push -u origin --tags --force
