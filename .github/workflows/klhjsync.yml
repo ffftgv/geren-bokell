@@ -1,4 +1,4 @@
-name: Sync Gitee to GitHub
+名字: Sync Gitee to GitHub
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: 🔍 调试环境信息
+      - 名字: 🔍 调试环境信息
         run: |
           echo "======================================"
           echo "当前 GitHub 仓库上下文:"
