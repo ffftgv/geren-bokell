@@ -11,67 +11,32 @@ jobs:
     steps:
       - name: Sync Repository
         run: |
-          # 尝试直接克隆Gitee仓库（首选方法）
-          if git clone https://gitee.com/wzjwwcom/personal-blog.git repo; then
-            echo "✅ 成功通过Git克隆仓库"
-          else
-            echo "❌ Git克隆失败，尝试下载ZIP文件..."
-            
-            # 使用更可靠的User-Agent尝试下载ZIP
-            curl -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" \
-              -o repo.zip \
-              "https://gitee.com/wzjwwcom/personal-blog/repository/archive/master.zip"
-            
-            # 检查下载的文件是否为有效的ZIP
-            if file repo.zip | grep -q "Zip archive"; then
-              echo "✅ 成功下载有效的ZIP文件"
-            else
-              echo "❌ 下载的文件不是有效的ZIP，可能是人机验证页面"
-              echo "尝试使用Gitee API下载..."
-              
-              # 使用Gitee API尝试下载
-              curl -L -H "Accept: application/vnd.github.v3+json" \
-                -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" \
-                -o repo.zip \
-                "https://gitee.com/api/v5/repos/wzjwwcom/personal-blog/zipball/master"
-              
-              # 再次检查ZIP有效性
-              if ! file repo.zip | grep -q "Zip archive"; then
-                echo "❌ 无法获取有效的仓库文件，请检查Gitee仓库状态"
-                exit 1
-              fi
-            fi
-            
-            # 解压ZIP文件
-            unzip -o repo.zip
-            # 处理可能的目录名称
-            if [ -d "personal-blog-master" ]; then
-              mv personal-blog-master repo
-            elif [ -d "wzjwwcom-personal-blog-"* ]; then
-              mv wzjwwcom-personal-blog-* repo
-            else
-              echo "❌ 无法识别解压后的目录结构"
-              exit 1
-            fi
-          fi
+          # 1. 克隆Gitee仓库
+          git clone https://gitee.com/wzjwwcom/personal-blog.git repo
+          echo "✅ 成功通过Git克隆仓库"
           
-          # 确保进入正确的仓库目录
-          cd repo || exit 1
+          # 2. 进入仓库目录
+          cd repo
           
-          # 初始化Git配置（如果尚未初始化）
-          if [ ! -d ".git" ]; then
-            git init
-          fi
+          # 3. 移除所有可能存在的远程配置（关键修复点）
+          git remote remove origin 2>/dev/null || true
+          git remote remove github 2>/dev/null || true
           
+          # 4. 获取正确的GitHub仓库URL
+          OWNER="${GITHUB_REPOSITORY%%/*}"
+          REPO="${GITHUB_REPOSITORY#*/}"
+          GITHUB_URL="https://x-access-token:${{ github.token }}@github.com/$OWNER/$REPO.git"
+          
+          echo "🔍 当前GitHub仓库: $OWNER/$REPO"
+          echo "🔗 正在推送到: $GITHUB_URL"
+          
+          # 5. 配置Git用户信息
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           
-          # 确保远程仓库设置正确
-          git remote remove origin 2>/dev/null || true
-          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          # 6. 添加正确的GitHub远程（确保URL格式正确，无多余空格）
+          git remote add origin "$GITHUB_URL"
           
-          # 推送所有内容
-          git add .
-          git commit -m "Sync from Gitee" || echo "No changes to commit"
+          # 7. 推送所有分支和标签
           git push -u origin --all --force
           git push -u origin --tags --force
