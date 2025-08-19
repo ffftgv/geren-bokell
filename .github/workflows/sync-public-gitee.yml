@@ -3,7 +3,7 @@ name: Sync Public Gitee Repository
 on:
   workflow_dispatch: # 允许手动触发
   schedule:
-    - cron: '0 */12 * * *' # 每12小时自动同步一次
+    - cron: '*/20 * * * *' # 每20分钟自动同步一次
 
 jobs:
   sync:
@@ -23,5 +23,5 @@ jobs:
           git remote add github "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
           
           # 推送所有分支和标签到 GitHub
-          git push -u github --all
-          git push -u github --tags
+          git push -u github --all --force
+          git push -u github --tags --force
