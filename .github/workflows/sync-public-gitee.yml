@@ -1,40 +1,76 @@
-name: Sync Public Gitee Repository
+name: Sync Public Gitee Repository (Debug Mode)
 
 on:
-  workflow_dispatch: # 允许手动触发
+  workflow_dispatch:
   schedule:
-    - cron: '*/20 * * * *' # 每20分钟自动同步一次
+    - cron: '*/20 * * * *' # 每20分钟同步一次
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Debug Environment
+      - name: 1️⃣ 显示环境信息
         run: |
-          echo "当前 GitHub 仓库: ${{ github.repository }}"
-          echo "当前仓库所有者: ${{ github.repository_owner }}"
-          echo "当前分支: ${{ github.ref }}"
-          echo "工作目录: $(pwd)"
+          echo "🔍 当前工作目录: $(pwd)"
+          echo "📦 GitHub 仓库: ${{ github.repository }}"
+          echo "👤 仓库所有者: ${{ github.repository_owner }}"
+          echo "🔖 仓库名称: ${{ github.event.repository.name || github.event.repository.slug }}"
+          echo "🔄 事件类型: ${{ github.event_name }}"
+          echo "🖥️ 运行器信息: $RUNNER_OS, $RUNNER_ARCH"
 
-      - 名字: Clone and Sync Repository
+      - 名字: 2️⃣ 检查 Gitee 仓库可访问性
         run: |
-          # 直接克隆公开的 Gitee 仓库
+          echo "📡 测试 Gitee 仓库连通性..."
+          curl -I https://gitee.com/wzjwwcom/personal-blog.git
+          echo "✅ Gitee 仓库可访问"
+
+      - 名字: 3️⃣ 克隆 Gitee 仓库
+        run: |
+          echo "📥 开始克隆 Gitee 仓库..."
           git clone https://gitee.com/wzjwwcom/personal-blog.git repo
-          
-          # 进入克隆的仓库目录
+          cd repo
+          echo "📂 克隆成功! 仓库内容:"
+          ls -la
+          echo "🆔 仓库 HEAD 提交:"
+          git log -1
+
+      - 名字: 4️⃣ 配置并推送至 GitHub
+        run: |
           cd repo
           
-          # 配置 Git 用户信息
+          # 配置 Git 信息
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           
-          # 显式使用正确的 GitHub 仓库 URL 格式
-          GITHUB_REPO_URL="https://x-access-token:${{ github.token }}@github.com/${{ github.repository_owner }}/${{ github.event.repository.name || github.event.repository.slug }}.git"
-          echo "正在推送到: $GITHUB_REPO_URL"
+          # 构建 GitHub 仓库 URL (多种方式尝试)
+          REPO_OWNER="${{ github.repository_owner }}"
+          REPO_NAME="${{ github.event.repository.name || github.event.repository.slug || github.repository }}"
+
+          # 如果 REPO_NAME 仍然包含斜杠，则分割
+          if [[ "$REPO_NAME" == *"/"* ]]; then
+            REPO_OWNER="${REPO_NAME%%/*}"
+            REPO_NAME="${REPO_NAME#*/}"
+          fi
           
-          # 添加当前 GitHub 仓库作为远程（使用更可靠的变量）
-          git remote add github "$GITHUB_REPO_URL"
+          echo "📤 构建 GitHub 仓库 URL..."
+          GITHUB_URL="https://x-access-token:${{ github.token }}@github.com/$REPO_OWNER/$REPO_NAME.git"
+          echo "🔗 使用 URL: $GITHUB_URL"
           
-          # 推送所有分支和标签到 GitHub
-          git push -u github --all --force
+          # 测试 URL 连通性
+          curl -I "$GITHUB_URL" || echo "⚠️ 注意: curl 测试可能失败，因为需要认证"
+          
+          # 添加远程仓库
+          git remote add github "$GITHUB_URL" || git remote set-url github "$GITHUB_URL"
+          
+          echo "🔄 获取远程信息..."
+          git remote -v
+          
+          echo "📤 推送所有分支..."
+          git push -u github --all --force || {
+            echo "❌ 推送失败! 尝试详细错误诊断:"
+            git ls-remote --heads "$GITHUB_URL" || echo "无法列出远程分支"
+            exit 1
+          }
+          
+          echo "🏷️ 推送所有标签..."
           git push -u github --tags --force
