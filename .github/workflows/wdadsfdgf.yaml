@@ -1,4 +1,4 @@
-name: Sync Gitee to GitHub
+名字: Sync Gitee to GitHub
 
 on:
   workflow_dispatch:
@@ -9,10 +9,12 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Download and Sync
+      - 名字: Sync Repository
         run: |
-          # 直接下载仓库 ZIP 文件（绕过 Git 克隆问题）
-          curl -L https://gitee.com/wzjwwcom/personal-blog/repository/blazearchive/master.zip?Expires=1755608134&Signature=3RBgQR%2BCc%2BuQPmfzp2cCMrerUN6itNt2jV%2BLoFAvZ60%3D -o repo.zip
+          # 使用wget代替curl，并添加浏览器User-Agent避免触发人机验证
+          wget -U "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" \
+            -O repo.zip \
+            "https://gitee.com/wzjwwcom/personal-blog/repository/archive/master.zip"
           
           # 解压并准备仓库
           unzip repo.zip
