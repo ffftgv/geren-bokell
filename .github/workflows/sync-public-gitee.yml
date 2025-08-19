@@ -11,13 +11,13 @@ jobs:
     steps:
       - name: Clone and Sync Repository
         run: |
-          # 配置 Git 用户信息
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          
           # 直接克隆公开的 Gitee 仓库（无需任何认证）
           git clone https://gitee.com/wzjwwcom/personal-blog.git repo
+          
+          # 进入克隆的仓库目录后再配置 Git 信息
           cd repo
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
           
           # 添加当前 GitHub 仓库作为远程
           git remote add github "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
